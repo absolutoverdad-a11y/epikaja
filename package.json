@@ -1,0 +1,9 @@
+{
+  "name": "epikaja",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "node --check src/ui/router.js && node --check services/gemini.js && node --check services/productos.js && node --check api/analizar-prenda-gemini.js && node --check api/subir-imagen-producto.js"
+  }
+}

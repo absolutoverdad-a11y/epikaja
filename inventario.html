@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Epikaja | Inventario</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      if (localStorage.getItem("epika-theme") === "dark") document.documentElement.classList.add("dark");
+    </script>
+    <link rel="stylesheet" href="./styles/theme.css" />
+  </head>
+  <body x-data="inventarioApp()" x-init="init()" class="bg-gray-100 text-gray-900 antialiased">
+    <div id="loginScreen" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-100 p-4">
+      <section class="w-full max-w-sm rounded-lg bg-white p-6 text-center shadow-sm">
+        <p class="text-sm font-semibold uppercase tracking-wide text-green-600">Epikaja</p>
+        <h1 class="mt-1 text-2xl font-bold text-gray-950">Inventario</h1>
+        <p class="mt-3 text-sm text-gray-500">Inicia sesion para administrar el catalogo maestro.</p>
+        <button id="loginGoogle" type="button" class="mt-6 w-full rounded-lg bg-gray-950 px-4 py-3 font-semibold text-white hover:bg-gray-800">
+          Entrar con Google
+        </button>
+        <p id="loginError" class="mt-4 hidden text-sm font-semibold text-red-600"></p>
+      </section>
+    </div>
+
+    <div id="appShell" class="hidden min-h-screen">
+      <header class="relative bg-white shadow-sm">
+        <div class="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-4 sm:px-6">
+          <div>
+            <p class="text-sm font-semibold uppercase tracking-wide text-green-600">Epikaja</p>
+            <h1 class="text-xl font-bold text-gray-950">Catalogo maestro</h1>
+          </div>
+          <div class="flex items-center gap-2">
+            <button data-mobile-menu-toggle type="button" class="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 md:hidden" aria-label="Abrir menu" aria-expanded="false">
+              <span class="space-y-1.5">
+                <span class="block h-0.5 w-5 rounded bg-current"></span>
+                <span class="block h-0.5 w-5 rounded bg-current"></span>
+                <span class="block h-0.5 w-5 rounded bg-current"></span>
+              </span>
+            </button>
+            <nav id="appNav" class="flex items-center gap-2"></nav>
+            <button data-theme-toggle type="button" class="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200" aria-label="Cambiar tema" title="Cambiar tema">
+              <span data-theme-icon class="inline-flex h-4 w-4 items-center justify-center"></span>
+            </button>
+            <button id="logoutGoogle" type="button" class="rounded-lg bg-gray-950 px-3 py-2 text-sm font-semibold text-white hover:bg-gray-800">Salir</button>
+          </div>
+        </div>
+      </header>
+
+      <main class="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:py-8">
+        <section class="rounded-lg bg-white p-5 shadow-sm sm:p-6">
+          <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p id="formMode" class="text-sm font-semibold text-green-600">Modo registro</p>
+              <h2 class="text-lg font-bold text-gray-950">Producto</h2>
+            </div>
+            <button id="nuevoProducto" type="button" class="rounded-lg bg-gray-100 px-4 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-200">
+              Nuevo producto
+            </button>
+          </div>
+
+          <form id="productoForm" class="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-3">
+            <label class="block lg:col-span-2">
+              <span class="text-sm font-semibold text-gray-700">Codigo de barras o codigo interno</span>
+              <div class="mt-1 flex gap-2">
+                <input id="codigoBarras" type="text" class="w-full rounded-lg border border-gray-300 px-3 py-3 text-base focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200" placeholder="Escanea o escribe el codigo" autocomplete="off" />
+                <button id="generarCodigo" type="button" class="shrink-0 rounded-lg bg-green-50 px-4 py-3 text-sm font-semibold text-green-700 hover:bg-green-100">Generar</button>
+              </div>
+              <span id="scannerHint" class="mt-1 block text-xs text-gray-500">Haz clic aqui y dispara la pistola escaner. Presiona Enter para buscar.</span>
+            </label>
+
+            <label class="block">
+              <span class="text-sm font-semibold text-gray-700">Talla</span>
+              <input id="talla" type="text" maxlength="30" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-3 text-base focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200" placeholder="CH, M, 28, Unitalla..." />
+            </label>
+
+            <label class="block lg:col-span-2">
+              <span class="text-sm font-semibold text-gray-700">Nombre de la prenda</span>
+              <input id="nombre" type="text" maxlength="120" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-3 text-base focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200" placeholder="Ej. Playera Oversize Negra" />
+            </label>
+
+            <label class="block">
+              <span class="text-sm font-semibold text-gray-700">Marca</span>
+              <input id="marca" type="text" maxlength="80" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-3 text-base focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200" placeholder="Zara, H&M, Generica" />
+            </label>
+
+            <label class="block">
+              <span class="text-sm font-semibold text-gray-700">Tipo de prenda</span>
+              <input id="tipoPrenda" type="text" maxlength="80" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-3 text-base focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200" placeholder="Playera, pantalon, vestido" />
+            </label>
+
+            <label class="block">
+              <span class="text-sm font-semibold text-gray-700">Color</span>
+              <input id="color" type="text" maxlength="60" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-3 text-base focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200" placeholder="Negro, blanco, azul" />
+            </label>
+
+            <label class="block">
+              <span class="text-sm font-semibold text-gray-700">Costo de compra</span>
+              <input id="costoCompra" type="number" min="0" step="0.01" inputmode="decimal" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-3 text-base focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200" placeholder="0.00" />
+            </label>
+
+            <label class="block">
+              <span class="text-sm font-semibold text-gray-700">Precio de venta</span>
+              <input id="precioVenta" type="number" min="0" step="0.01" inputmode="decimal" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-3 text-base focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200" placeholder="0.00" />
+            </label>
+
+            <label class="block">
+              <span class="text-sm font-semibold text-gray-700">Stock inicial</span>
+              <input id="stock" type="number" min="0" step="1" inputmode="numeric" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-3 text-base focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200" placeholder="0" />
+            </label>
+
+            <label class="block lg:col-span-2">
+              <span class="text-sm font-semibold text-gray-700">Ubicacion</span>
+              <input id="ubicacion" type="text" maxlength="120" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-3 text-base focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200" placeholder="Exhibidor Principal, Almacen Estante B" />
+            </label>
+
+            <div class="grid grid-cols-1 gap-4 lg:col-span-2 sm:grid-cols-[1fr_auto] sm:items-start">
+              <label class="block">
+                <span class="text-sm font-semibold text-gray-700">Fotografia del producto</span>
+                <div class="mt-1 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  <button id="tomarFotoProducto" type="button" class="rounded-lg bg-gray-950 px-4 py-3 text-sm font-semibold text-white hover:bg-gray-800">Tomar foto</button>
+                  <button id="subirFotoProducto" type="button" class="rounded-lg bg-gray-100 px-4 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-200">Subir imagen</button>
+                </div>
+                <input id="imagenProducto" type="file" accept="image/png,image/jpeg,image/jpg,image/webp,image/heic,image/heif,.heic,.heif" class="hidden" />
+                <input id="imagenCamaraProducto" type="file" accept="image/*" capture="environment" class="hidden" />
+                <span id="imagenEstado" class="mt-1 block text-xs text-gray-500">Opcional. Se guardara como WebP ligero automaticamente.</span>
+                <button id="analizarPrendaIA" type="button" disabled class="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-purple-600 px-4 py-3 text-sm font-semibold text-white hover:bg-purple-700 disabled:cursor-not-allowed disabled:bg-gray-400">
+                  <span id="analizarPrendaSpinner" class="hidden h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white"></span>
+                  <span id="analizarPrendaTexto">Analizar Prenda con IA</span>
+                </button>
+              </label>
+
+              <div class="w-full rounded-lg bg-gray-50 p-3 sm:w-36">
+                <div id="imagenPlaceholder" class="flex aspect-square items-center justify-center rounded-lg border border-dashed border-gray-300 bg-white text-xs font-semibold text-gray-400">Sin Foto</div>
+                <img id="imagenPreview" src="" alt="Vista previa del producto" class="hidden aspect-square w-full rounded-lg object-cover" />
+                <p id="imagenPeso" class="mt-2 text-center text-xs font-semibold text-gray-500"></p>
+              </div>
+            </div>
+
+            <div class="rounded-lg bg-gray-50 p-4">
+              <p class="text-sm font-semibold text-gray-500">Ganancia estimada</p>
+              <p id="margenGanancia" class="mt-1 text-2xl font-bold text-green-600">$0.00</p>
+              <p id="margenPorcentaje" class="mt-1 text-sm text-gray-500">0% sobre costo</p>
+            </div>
+
+            <label class="block lg:col-span-3">
+              <span class="text-sm font-semibold text-gray-700">Descripcion</span>
+              <textarea id="descripcion" maxlength="400" rows="3" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-3 text-base focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200" placeholder="Detalles de diseno, tela, corte, estampado o estado de la prenda"></textarea>
+            </label>
+
+            <div class="flex flex-col gap-3 lg:col-span-3 sm:flex-row">
+              <button id="guardarProductoBtn" type="submit" class="rounded-lg bg-green-600 px-5 py-3 font-semibold text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:bg-gray-400">
+                <span id="guardarProductoTexto">Guardar producto</span>
+              </button>
+              <button id="buscarCodigo" type="button" class="rounded-lg bg-gray-950 px-5 py-3 font-semibold text-white hover:bg-gray-800">Buscar codigo</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="mt-5 rounded-lg bg-white shadow-sm">
+          <div class="border-b border-gray-100 px-5 py-4">
+            <div class="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+              <div>
+                <h2 class="text-lg font-bold text-gray-950">Productos registrados</h2>
+                <p id="contadorProductos" class="mt-1 text-sm text-gray-500">0 productos</p>
+              </div>
+              <button id="limpiarFiltros" type="button" class="rounded-lg bg-gray-100 px-4 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-200">
+                Limpiar filtros
+              </button>
+            </div>
+
+            <div class="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1fr_1fr_auto]">
+              <label class="block md:col-span-2 lg:col-span-1">
+                <span class="text-sm font-semibold text-gray-700">Buscar</span>
+                <input id="buscarInventario" type="search" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-3 text-base focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200" placeholder="Nombre, codigo, tipo, color..." autocomplete="off" />
+              </label>
+
+              <label class="block">
+                <span class="text-sm font-semibold text-gray-700">Tipo</span>
+                <select id="filtroTipo" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-3 text-base focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200">
+                  <option value="">Todos</option>
+                </select>
+              </label>
+
+              <label class="block">
+                <span class="text-sm font-semibold text-gray-700">Color</span>
+                <select id="filtroColor" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-3 text-base focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200">
+                  <option value="">Todos</option>
+                </select>
+              </label>
+
+              <label class="block">
+                <span class="text-sm font-semibold text-gray-700">Talla</span>
+                <select id="filtroTalla" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-3 text-base focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200">
+                  <option value="">Todas</option>
+                </select>
+              </label>
+
+              <label class="block">
+                <span class="text-sm font-semibold text-gray-700">Stock</span>
+                <select id="filtroStock" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-3 text-base focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200">
+                  <option value="">Todo</option>
+                  <option value="disponible">Disponible</option>
+                  <option value="bajo">Bajo stock</option>
+                  <option value="agotado">Agotado</option>
+                </select>
+              </label>
+
+              <label class="block">
+                <span class="text-sm font-semibold text-gray-700">Mostrar</span>
+                <select id="limiteProductos" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-3 text-base focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200">
+                  <option value="10">10</option>
+                  <option value="25" selected>25</option>
+                  <option value="50">50</option>
+                  <option value="100">100</option>
+                </select>
+              </label>
+            </div>
+          </div>
+          <div id="productosLista" class="divide-y divide-gray-100">
+            <div class="px-5 py-8 text-center text-sm text-gray-500">Cargando inventario...</div>
+          </div>
+          <div id="productosPaginacion" class="hidden border-t border-gray-100 px-5 py-4 text-center">
+            <button id="mostrarMasProductos" type="button" class="rounded-lg bg-gray-950 px-5 py-3 text-sm font-semibold text-white hover:bg-gray-800">
+              Mostrar mas
+            </button>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div id="cameraModal" class="fixed inset-0 z-[70] hidden bg-gray-950 text-white">
+      <div class="flex h-full flex-col">
+        <div class="flex items-center justify-between px-4 py-4">
+          <div>
+            <p class="text-sm font-semibold text-green-400">Camara</p>
+            <h2 class="text-lg font-bold">Tomar foto del producto</h2>
+          </div>
+          <button id="cerrarCamaraProducto" type="button" class="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-white/10 text-xl font-bold hover:bg-white/20" aria-label="Cerrar camara">x</button>
+        </div>
+
+        <div class="flex min-h-0 flex-1 items-center justify-center bg-black">
+          <video id="cameraPreview" class="h-full w-full object-contain" autoplay playsinline muted></video>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3 px-4 py-4">
+          <button id="cancelarCamaraProducto" type="button" class="rounded-lg bg-white/10 px-4 py-3 text-sm font-semibold hover:bg-white/20">Cancelar</button>
+          <button id="capturarFotoProducto" type="button" class="rounded-lg bg-green-600 px-4 py-3 text-sm font-semibold text-white hover:bg-green-700">Capturar</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="toast" class="fixed bottom-4 left-4 right-4 z-[60] hidden rounded-lg px-4 py-3 text-sm font-semibold shadow-lg sm:left-auto sm:w-96"></div>
+
+    <script type="module" src="./ui/app-inventario.js"></script>
+  </body>
+</html>

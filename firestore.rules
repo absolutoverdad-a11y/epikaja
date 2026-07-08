@@ -1,0 +1,221 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function estaAutenticado() {
+      return request.auth != null;
+    }
+
+    function perfilExiste() {
+      return estaAutenticado()
+        && exists(/databases/$(database)/documents/usuarios/$(request.auth.uid));
+    }
+
+    function tieneRol(roles) {
+      return perfilExiste()
+        && get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.rol in roles;
+    }
+
+    // Compatibilidad temporal con tus UIDs actuales.
+    // Puedes borrar estas 2 funciones cuando todos los usuarios tengan documento en /usuarios/{uid}.
+    function esDuenioLegacy() {
+      return estaAutenticado()
+        && request.auth.uid == "q9NBlxJIF8aQkn9C5r5xp1Ju0dt1";
+    }
+
+    function esTrabajadorLegacy() {
+      return estaAutenticado()
+        && request.auth.uid == "qfrRyPzhfybit3f38G0JmWajmU43";
+    }
+
+    function esAdmin() {
+      return tieneRol(["admin"]) || esDuenioLegacy();
+    }
+
+    function esVendedor() {
+      return tieneRol(["vendedor"]) || esTrabajadorLegacy();
+    }
+
+    function tieneAcceso() {
+      return esAdmin() || esVendedor();
+    }
+
+    function esCuentaValida() {
+      return request.resource.data.cuenta in ["caja", "ahorro"];
+    }
+
+    function esTipoValido() {
+      return request.resource.data.tipo in [
+        "ingreso_corte",
+        "gasto_operativo",
+        "retiro_sueldo",
+        "gasto_externo"
+      ];
+    }
+
+    function transaccionKeysValidas() {
+      return request.resource.data.keys().hasOnly([
+        "tipo",
+        "monto",
+        "concepto",
+        "cuenta",
+        "prendas",
+        "ingresoExtra",
+        "origen",
+        "usuarioEmail",
+        "usuarioUid",
+        "fecha"
+      ]);
+    }
+
+    function transaccionValida() {
+      return transaccionKeysValidas()
+        && request.resource.data.monto is number
+        && request.resource.data.monto >= 0
+        && esTipoValido()
+        && esCuentaValida()
+        && request.resource.data.concepto is string
+        && request.resource.data.concepto.size() <= 300
+        && request.resource.data.usuarioUid == request.auth.uid
+        && request.resource.data.usuarioEmail == request.auth.token.email
+        && request.resource.data.fecha == request.time
+        && (!("prendas" in request.resource.data) || request.resource.data.prendas is list)
+        && (!("ingresoExtra" in request.resource.data)
+          || request.resource.data.ingresoExtra == null
+          || request.resource.data.ingresoExtra is map)
+        && (!("origen" in request.resource.data) || request.resource.data.origen is string);
+    }
+
+    function saldosKeysValidas() {
+      return request.resource.data.keys().hasOnly([
+        "caja",
+        "ahorro",
+        "actualizadoPor",
+        "actualizadoEn"
+      ]);
+    }
+
+    function saldosValidos() {
+      return saldosKeysValidas()
+        && request.resource.data.caja is number
+        && request.resource.data.caja >= 0
+        && request.resource.data.ahorro is number
+        && request.resource.data.ahorro >= 0
+        && request.resource.data.actualizadoPor == request.auth.token.email
+        && request.resource.data.actualizadoEn == request.time;
+    }
+
+    function productoKeysValidas() {
+      return request.resource.data.keys().hasOnly([
+        "codigoBarras",
+        "nombre",
+        "talla",
+        "costoCompra",
+        "costoEstimado",
+        "precioVenta",
+        "ubicacion",
+        "color",
+        "marca",
+        "descripcion",
+        "tipoPrenda",
+        "stock",
+        "imagenUrl",
+        "imagenPath",
+        "actualizadoPor",
+        "actualizadoUid",
+        "actualizadoEn",
+        "creadoEn"
+      ]);
+    }
+
+    function productoBaseValido(codigo) {
+      return productoKeysValidas()
+        && request.resource.data.codigoBarras == codigo
+        && request.resource.data.nombre is string
+        && request.resource.data.nombre.size() > 0
+        && request.resource.data.nombre.size() <= 120
+        && request.resource.data.talla is string
+        && request.resource.data.talla.size() > 0
+        && request.resource.data.talla.size() <= 30
+        && request.resource.data.costoCompra is number
+        && request.resource.data.costoCompra >= 0
+        && request.resource.data.precioVenta is number
+        && request.resource.data.precioVenta >= 0
+        && request.resource.data.stock is number
+        && request.resource.data.stock >= 0
+        && request.resource.data.actualizadoUid == request.auth.uid
+        && request.resource.data.actualizadoPor == request.auth.token.email
+        && request.resource.data.actualizadoEn == request.time
+        && (!("costoEstimado" in request.resource.data) || request.resource.data.costoEstimado is number)
+        && (!("ubicacion" in request.resource.data) || request.resource.data.ubicacion is string)
+        && (!("color" in request.resource.data) || request.resource.data.color is string)
+        && (!("marca" in request.resource.data) || request.resource.data.marca is string)
+        && (!("descripcion" in request.resource.data) || request.resource.data.descripcion is string)
+        && (!("tipoPrenda" in request.resource.data) || request.resource.data.tipoPrenda is string)
+        && (!("imagenUrl" in request.resource.data) || request.resource.data.imagenUrl is string)
+        && (!("imagenPath" in request.resource.data) || request.resource.data.imagenPath is string);
+    }
+
+    function creadoEnValidoEnUpdate() {
+      return ("creadoEn" in resource.data)
+        ? request.resource.data.creadoEn == resource.data.creadoEn
+        : request.resource.data.creadoEn == request.time;
+    }
+
+    function soloDescuentaStock() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(["stock"])
+        && request.resource.data.stock is number
+        && request.resource.data.stock >= 0
+        && request.resource.data.stock <= resource.data.stock;
+    }
+
+    match /usuarios/{uid} {
+      allow read: if estaAutenticado()
+        && (request.auth.uid == uid || esAdmin());
+
+      allow create, update, delete: if false;
+    }
+
+    match /transacciones/{docId} {
+      // Finanzas solo para admin. Vendedor puede crear ventas/gastos permitidos, pero no leer historial financiero.
+      allow read: if esAdmin();
+
+      allow create: if tieneAcceso()
+        && transaccionValida();
+
+      allow update, delete: if false;
+    }
+
+    match /configuracion/{docId} {
+      allow read: if esAdmin();
+
+      allow write: if esAdmin()
+        && docId == "saldos"
+        && saldosValidos();
+    }
+
+    match /productos/{codigo} {
+      allow read: if tieneAcceso();
+
+      allow create: if esAdmin()
+        && productoBaseValido(codigo)
+        && request.resource.data.creadoEn == request.time;
+
+      allow update: if (
+          esAdmin()
+          && productoBaseValido(codigo)
+          && creadoEnValidoEnUpdate()
+        ) || (
+          tieneAcceso()
+          && soloDescuentaStock()
+        );
+
+      allow delete: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -1,0 +1,409 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Epika | Caja y Finanzas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      if (localStorage.getItem("epika-theme") === "dark") document.documentElement.classList.add("dark");
+    </script>
+    <link rel="stylesheet" href="./styles/theme.css" />
+    <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+    <style>
+      .dark body,
+      .dark #loginScreen {
+        background: #0f172a;
+        color: #e5e7eb;
+      }
+
+      .dark header,
+      .dark section,
+      .dark article,
+      .dark [role="dialog"] > div {
+        background: #111827;
+        color: #e5e7eb;
+        box-shadow: 0 10px 30px rgb(0 0 0 / 0.22);
+      }
+
+      .dark .bg-white,
+      .dark .bg-gray-50,
+      .dark .bg-gray-100 {
+        background-color: #111827 !important;
+      }
+
+      .dark .text-gray-950,
+      .dark .text-gray-900,
+      .dark .text-gray-800,
+      .dark .text-gray-700 {
+        color: #f9fafb !important;
+      }
+
+      .dark .text-gray-600,
+      .dark .text-gray-500,
+      .dark .text-gray-400 {
+        color: #9ca3af !important;
+      }
+
+      .dark .border-gray-100,
+      .dark .border-gray-200,
+      .dark .border-gray-300 {
+        border-color: #374151 !important;
+      }
+
+      .dark input,
+      .dark select {
+        background: #0f172a !important;
+        border-color: #374151 !important;
+        color: #f9fafb !important;
+      }
+
+      .dark input::placeholder {
+        color: #6b7280;
+      }
+
+      .dark button.bg-white,
+      .dark button.bg-gray-100 {
+        background: #1f2937 !important;
+        color: #f9fafb !important;
+      }
+
+      .dark .divide-gray-100 > :not([hidden]) ~ :not([hidden]) {
+        border-color: #374151 !important;
+      }
+    </style>
+  </head>
+  <body x-data="financieroApp()" x-init="init()" class="bg-gray-100 text-gray-900 antialiased">
+    <svg class="hidden" aria-hidden="true">
+      <symbol id="icon-google" viewBox="0 0 24 24">
+        <path fill="currentColor" d="M21.6 12.23c0-.74-.07-1.45-.19-2.13H12v4.03h5.38a4.6 4.6 0 0 1-2 3.02v2.51h3.24c1.89-1.74 2.98-4.31 2.98-7.43Z" />
+        <path fill="currentColor" d="M12 22c2.7 0 4.96-.89 6.62-2.42l-3.24-2.51c-.9.6-2.04.96-3.38.96-2.6 0-4.81-1.76-5.6-4.12H3.06v2.59A9.99 9.99 0 0 0 12 22Z" />
+        <path fill="currentColor" d="M6.4 13.91A6.01 6.01 0 0 1 6.08 12c0-.66.11-1.3.32-1.91V7.5H3.06A9.99 9.99 0 0 0 2 12c0 1.61.39 3.13 1.06 4.5l3.34-2.59Z" />
+        <path fill="currentColor" d="M12 5.97c1.47 0 2.79.5 3.82 1.49l2.87-2.87C16.96 2.98 14.7 2 12 2a9.99 9.99 0 0 0-8.94 5.5l3.34 2.59C7.19 7.73 9.4 5.97 12 5.97Z" />
+      </symbol>
+      <symbol id="icon-moon" viewBox="0 0 24 24">
+        <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M20.99 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.78 9.79Z" />
+      </symbol>
+      <symbol id="icon-sun" viewBox="0 0 24 24">
+        <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 1v2m0 18v2m7.78-18.78-1.42 1.42M5.64 18.36l-1.42 1.42M23 12h-2M3 12H1m18.78 7.78-1.42-1.42M5.64 5.64 4.22 4.22M12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10Z" />
+      </symbol>
+      <symbol id="icon-log-out" viewBox="0 0 24 24">
+        <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M9 21H5a2 2 0 0 1-2-2V5c0-1.1.9-2 2-2h4m7 14 5-5-5-5m5 5H9" />
+      </symbol>
+      <symbol id="icon-settings" viewBox="0 0 24 24">
+        <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.52a2 2 0 0 1-1 1.72l-.15.1a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.52a2 2 0 0 1 1-1.72l.15-.1a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2Z" />
+        <circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2" />
+      </symbol>
+      <symbol id="icon-cash" viewBox="0 0 24 24">
+        <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M3 6h18v12H3zM7 10h.01M17 14h.01M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
+      </symbol>
+      <symbol id="icon-receipt" viewBox="0 0 24 24">
+        <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1-2-1ZM8 7h8M8 11h8M8 15h5" />
+      </symbol>
+      <symbol id="icon-wallet" viewBox="0 0 24 24">
+        <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M19 7V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-2m-8-5h8v5h-8a2.5 2.5 0 0 1 0-5Z" />
+      </symbol>
+      <symbol id="icon-download" viewBox="0 0 24 24">
+        <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4m4-5 5 5 5-5m-5 5V3" />
+      </symbol>
+      <symbol id="icon-plus" viewBox="0 0 24 24">
+        <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M12 5v14M5 12h14" />
+      </symbol>
+      <symbol id="icon-save" viewBox="0 0 24 24">
+        <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2ZM17 21v-8H7v8M7 3v5h8" />
+      </symbol>
+      <symbol id="icon-x" viewBox="0 0 24 24">
+        <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M18 6 6 18M6 6l12 12" />
+      </symbol>
+    </svg>
+
+    <div id="loginScreen" class="fixed inset-0 z-[80] flex items-center justify-center bg-gray-100 p-4">
+      <section class="w-full max-w-sm rounded-lg bg-white p-6 text-center shadow-sm">
+        <p class="text-sm font-semibold uppercase tracking-wide text-green-600">Epika</p>
+        <h1 class="mt-1 text-2xl font-bold text-gray-950">Caja y finanzas</h1>
+        <p class="mt-3 text-sm text-gray-500">Inicia sesion con Google para usar la app.</p>
+        <button id="loginGoogle" type="button" class="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-gray-950 px-4 py-3 font-semibold text-white hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:ring-offset-2">
+          <svg class="h-5 w-5" aria-hidden="true"><use href="#icon-google"></use></svg>
+          <span>Entrar con Google</span>
+        </button>
+        <p id="loginError" class="mt-4 hidden text-sm font-semibold text-red-600"></p>
+      </section>
+    </div>
+
+    <div id="appShell" class="hidden min-h-screen">
+      <header class="relative bg-white shadow-sm">
+        <div class="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-4 sm:px-6">
+          <div>
+            <p class="text-sm font-semibold uppercase tracking-wide text-green-600">Epika</p>
+            <h1 class="text-xl font-bold text-gray-950">Caja y finanzas</h1>
+          </div>
+          <div class="flex items-center gap-2">
+            <div id="connectionStatus" class="rounded-full bg-yellow-100 px-3 py-1 text-xs font-semibold text-yellow-800">
+              Conectando
+            </div>
+            <button data-mobile-menu-toggle type="button" class="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 md:hidden" aria-label="Abrir menu" aria-expanded="false">
+              <span class="space-y-1.5">
+                <span class="block h-0.5 w-5 rounded bg-current"></span>
+                <span class="block h-0.5 w-5 rounded bg-current"></span>
+                <span class="block h-0.5 w-5 rounded bg-current"></span>
+              </span>
+            </button>
+            <nav id="appNav" class="flex items-center gap-2"></nav>
+            <button id="themeToggle" data-theme-toggle type="button" class="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200" aria-label="Cambiar tema" title="Cambiar tema">
+              <svg class="h-4 w-4" aria-hidden="true"><use id="themeToggleIcon" href="#icon-moon"></use></svg>
+            </button>
+            <button id="logoutGoogle" type="button" class="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200" aria-label="Salir" title="Salir">
+              <svg class="h-4 w-4" aria-hidden="true"><use href="#icon-log-out"></use></svg>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <main class="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:py-8">
+        <section class="rounded-lg bg-white p-5 shadow-sm sm:p-6">
+          <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <p class="text-sm font-semibold text-gray-500">Saldo Actual</p>
+              <p id="saldoActual" class="mt-2 text-4xl font-bold text-green-600">$0.00</p>
+              <p id="resumenMovimientos" class="mt-2 text-sm text-gray-500">0 ingresos - 0 salidas</p>
+            </div>
+            <button type="button" data-open-modal="modalSaldos" class="inline-flex items-center justify-center gap-2 rounded-lg bg-green-50 px-4 py-3 text-sm font-semibold text-green-700 hover:bg-green-100">
+              <svg class="h-4 w-4" aria-hidden="true"><use href="#icon-settings"></use></svg>
+              <span>Configurar saldos</span>
+            </button>
+          </div>
+        </section>
+
+        <section class="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <article class="rounded-lg bg-white p-5 shadow-sm">
+            <p class="text-sm font-semibold text-gray-500">Dinero en caja</p>
+            <p id="saldoCaja" class="mt-2 text-3xl font-bold text-gray-950">$0.00</p>
+          </article>
+          <article class="rounded-lg bg-white p-5 shadow-sm">
+            <p class="text-sm font-semibold text-gray-500">Dinero en ahorro</p>
+            <p id="saldoAhorro" class="mt-2 text-3xl font-bold text-gray-950">$0.00</p>
+          </article>
+        </section>
+
+        <section class="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <button type="button" data-open-modal="modalCorte" class="rounded-lg bg-green-600 px-4 py-4 text-left font-semibold text-white shadow-sm transition hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
+            <span class="flex items-center gap-3">
+              <svg class="h-6 w-6 shrink-0" aria-hidden="true"><use href="#icon-cash"></use></svg>
+              <span>
+                <span class="block text-lg">Hacer corte del dia</span>
+                <span class="mt-1 block text-sm font-medium text-green-100">Prendas vendidas y cuenta</span>
+              </span>
+            </span>
+          </button>
+
+          <button type="button" data-open-modal="modalGasto" class="rounded-lg bg-white px-4 py-4 text-left font-semibold text-gray-950 shadow-sm transition hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
+            <span class="flex items-center gap-3">
+              <svg class="h-6 w-6 shrink-0 text-red-600" aria-hidden="true"><use href="#icon-receipt"></use></svg>
+              <span>
+                <span class="block text-lg">Gasto operativo</span>
+                <span class="mt-1 block text-sm font-medium text-gray-500">Sacar de caja o ahorro</span>
+              </span>
+            </span>
+          </button>
+
+          <button type="button" data-open-modal="modalRetiro" class="rounded-lg bg-white px-4 py-4 text-left font-semibold text-gray-950 shadow-sm transition hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
+            <span class="flex items-center gap-3">
+              <svg class="h-6 w-6 shrink-0 text-gray-700" aria-hidden="true"><use href="#icon-wallet"></use></svg>
+              <span>
+                <span class="block text-lg">Retiros de dinero</span>
+                <span class="mt-1 block text-sm font-medium text-gray-500">Sueldo o gasto externo</span>
+              </span>
+            </span>
+          </button>
+        </section>
+
+        <section class="mt-5 rounded-lg bg-white p-5 shadow-sm sm:p-6">
+          <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <h2 class="text-lg font-bold text-gray-950">Reporte en Excel</h2>
+              <p class="mt-1 text-sm text-gray-500">Descarga un archivo con formato, vista general e historial completo.</p>
+            </div>
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_1fr_auto]">
+              <label class="block">
+                <span class="text-sm font-semibold text-gray-700">Desde</span>
+                <input id="fechaInicioReporte" type="date" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-3 text-base focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200" />
+              </label>
+              <label class="block">
+                <span class="text-sm font-semibold text-gray-700">Hasta</span>
+                <input id="fechaFinReporte" type="date" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-3 text-base focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200" />
+              </label>
+              <button id="descargarReporte" type="button" class="inline-flex items-center justify-center gap-2 self-end rounded-lg bg-gray-950 px-4 py-3 font-semibold text-white hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:ring-offset-2">
+                <svg class="h-5 w-5" aria-hidden="true"><use href="#icon-download"></use></svg>
+                <span>Descargar Excel</span>
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <section class="mt-5 rounded-lg bg-white shadow-sm">
+          <div class="border-b border-gray-100 px-5 py-4">
+            <h2 class="text-lg font-bold text-gray-950">Historial de movimientos</h2>
+            <p class="mt-1 text-sm text-gray-500">Ordenado del movimiento mas reciente al mas antiguo.</p>
+          </div>
+          <div id="historial" class="divide-y divide-gray-100">
+            <div class="px-5 py-8 text-center text-sm text-gray-500">Cargando movimientos...</div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div id="modalSaldos" class="fixed inset-0 z-50 hidden items-end justify-center bg-black/50 p-4 sm:items-center" role="dialog" aria-modal="true">
+      <div class="w-full max-w-md rounded-lg bg-white shadow-xl">
+        <div class="flex items-center justify-between border-b border-gray-100 px-5 py-4">
+          <h2 class="text-lg font-bold">Saldos iniciales</h2>
+          <button type="button" data-close-modal class="rounded-full p-2 text-gray-500 hover:bg-gray-100" aria-label="Cerrar"><svg class="h-5 w-5" aria-hidden="true"><use href="#icon-x"></use></svg></button>
+        </div>
+        <form id="formSaldos" class="space-y-4 px-5 py-5">
+          <label class="block">
+            <span class="text-sm font-semibold text-gray-700">Dinero inicial en caja</span>
+            <input id="saldoInicialCaja" type="number" min="0" step="0.01" inputmode="decimal" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-3 text-base focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200" placeholder="0.00" required />
+          </label>
+          <label class="block">
+            <span class="text-sm font-semibold text-gray-700">Dinero inicial en ahorro</span>
+            <input id="saldoInicialAhorro" type="number" min="0" step="0.01" inputmode="decimal" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-3 text-base focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200" placeholder="0.00" required />
+          </label>
+          <button type="submit" class="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-green-600 px-4 py-3 font-semibold text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
+            <svg class="h-5 w-5" aria-hidden="true"><use href="#icon-save"></use></svg>
+            <span>Guardar saldos</span>
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <div id="modalCorte" class="fixed inset-0 z-50 hidden items-end justify-center bg-black/50 p-4 sm:items-center" role="dialog" aria-modal="true">
+      <div class="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-lg bg-white shadow-xl">
+        <div class="flex items-center justify-between border-b border-gray-100 px-5 py-4">
+          <h2 class="text-lg font-bold">Corte del dia</h2>
+          <button type="button" data-close-modal class="rounded-full p-2 text-gray-500 hover:bg-gray-100" aria-label="Cerrar"><svg class="h-5 w-5" aria-hidden="true"><use href="#icon-x"></use></svg></button>
+        </div>
+        <form id="formCorte" class="space-y-4 px-5 py-5">
+          <label class="block">
+            <span class="text-sm font-semibold text-gray-700">Guardar ingreso en</span>
+            <select id="cuentaCorte" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-3 text-base focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200">
+              <option value="caja">Caja</option>
+              <option value="ahorro">Ahorro</option>
+            </select>
+          </label>
+          <div>
+            <div class="flex items-center justify-between gap-3">
+              <div>
+                <p class="text-sm font-semibold text-gray-700">Prendas vendidas</p>
+                <p class="mt-1 text-xs text-gray-500">Agrega cada prenda con cantidad y precio unitario.</p>
+              </div>
+              <button id="agregarPrenda" type="button" class="inline-flex items-center gap-2 rounded-lg bg-green-50 px-3 py-2 text-sm font-semibold text-green-700 hover:bg-green-100">
+                <svg class="h-4 w-4" aria-hidden="true"><use href="#icon-plus"></use></svg>
+                <span>Agregar</span>
+              </button>
+            </div>
+            <div id="listaPrendas" class="mt-3 space-y-3"></div>
+          </div>
+
+          <label class="block">
+            <span class="text-sm font-semibold text-gray-700">Total de ventas</span>
+            <input id="montoCorte" type="number" min="0" step="0.01" inputmode="decimal" class="mt-1 w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-3 text-base font-bold text-green-700 focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200" placeholder="0.00" readonly required />
+          </label>
+          <label class="flex items-center gap-3 rounded-lg bg-gray-50 p-3">
+            <input id="ceroVentas" type="checkbox" class="h-5 w-5 rounded border-gray-300 text-green-600 focus:ring-green-500" />
+            <span class="text-sm font-medium text-gray-700">Cero ventas hoy</span>
+          </label>
+          <div class="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_150px]">
+            <label class="block">
+              <span class="text-sm font-semibold text-gray-700">Concepto de dinero extra</span>
+              <input id="conceptoExtraCorte" type="text" maxlength="100" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-3 text-base focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200" placeholder="Ej. apartado, deposito, ajuste" />
+            </label>
+            <label class="block">
+              <span class="text-sm font-semibold text-gray-700">Dinero extra</span>
+              <input id="montoExtraCorte" type="number" min="0" step="0.01" inputmode="decimal" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-3 text-base focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200" placeholder="0.00" />
+            </label>
+          </div>
+          <button type="submit" class="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-green-600 px-4 py-3 font-semibold text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
+            <svg class="h-5 w-5" aria-hidden="true"><use href="#icon-save"></use></svg>
+            <span>Guardar corte</span>
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <div id="modalGasto" class="fixed inset-0 z-50 hidden items-end justify-center bg-black/50 p-4 sm:items-center" role="dialog" aria-modal="true">
+      <div class="w-full max-w-md rounded-lg bg-white shadow-xl">
+        <div class="flex items-center justify-between border-b border-gray-100 px-5 py-4">
+          <h2 class="text-lg font-bold">Gasto operativo</h2>
+          <button type="button" data-close-modal class="rounded-full p-2 text-gray-500 hover:bg-gray-100" aria-label="Cerrar"><svg class="h-5 w-5" aria-hidden="true"><use href="#icon-x"></use></svg></button>
+        </div>
+        <form id="formGasto" class="space-y-4 px-5 py-5">
+          <label class="block">
+            <span class="text-sm font-semibold text-gray-700">Sacar dinero de</span>
+            <select id="cuentaGasto" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-3 text-base focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200">
+              <option value="caja">Caja</option>
+              <option value="ahorro">Ahorro</option>
+            </select>
+          </label>
+          <label class="block">
+            <span class="text-sm font-semibold text-gray-700">Concepto</span>
+            <select id="conceptoGasto" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-3 text-base focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200">
+              <option value="Luz">Luz</option>
+              <option value="Internet">Internet</option>
+              <option value="Limpieza">Limpieza</option>
+              <option value="Mantenimiento">Mantenimiento</option>
+              <option value="Otro">Otro</option>
+            </select>
+          </label>
+          <label class="block">
+            <span class="text-sm font-semibold text-gray-700">Monto</span>
+            <input id="montoGasto" type="number" min="0.01" step="0.01" inputmode="decimal" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-3 text-base focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200" placeholder="0.00" required />
+          </label>
+          <button type="submit" class="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-gray-950 px-4 py-3 font-semibold text-white hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:ring-offset-2">
+            <svg class="h-5 w-5" aria-hidden="true"><use href="#icon-save"></use></svg>
+            <span>Guardar gasto</span>
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <div id="modalRetiro" class="fixed inset-0 z-50 hidden items-end justify-center bg-black/50 p-4 sm:items-center" role="dialog" aria-modal="true">
+      <div class="w-full max-w-md rounded-lg bg-white shadow-xl">
+        <div class="flex items-center justify-between border-b border-gray-100 px-5 py-4">
+          <h2 class="text-lg font-bold">Retiro de dinero</h2>
+          <button type="button" data-close-modal class="rounded-full p-2 text-gray-500 hover:bg-gray-100" aria-label="Cerrar"><svg class="h-5 w-5" aria-hidden="true"><use href="#icon-x"></use></svg></button>
+        </div>
+        <form id="formRetiro" class="space-y-4 px-5 py-5">
+          <label class="block">
+            <span class="text-sm font-semibold text-gray-700">Sacar dinero de</span>
+            <select id="cuentaRetiro" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-3 text-base focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200">
+              <option value="caja">Caja</option>
+              <option value="ahorro">Ahorro</option>
+            </select>
+          </label>
+          <label class="block">
+            <span class="text-sm font-semibold text-gray-700">Tipo de retiro</span>
+            <select id="tipoRetiro" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-3 text-base focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200">
+              <option value="retiro_sueldo">Pago de Sueldo</option>
+              <option value="gasto_externo">Gasto Externo</option>
+            </select>
+          </label>
+          <label id="notaRetiroWrapper" class="hidden">
+            <span class="text-sm font-semibold text-gray-700">Nota explicativa</span>
+            <input id="notaRetiro" type="text" maxlength="120" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-3 text-base focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200" placeholder="Ej. compra personal, apoyo familiar" />
+          </label>
+          <label class="block">
+            <span class="text-sm font-semibold text-gray-700">Monto</span>
+            <input id="montoRetiro" type="number" min="0.01" step="0.01" inputmode="decimal" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-3 text-base focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200" placeholder="0.00" required />
+          </label>
+          <button type="submit" class="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-gray-950 px-4 py-3 font-semibold text-white hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:ring-offset-2">
+            <svg class="h-5 w-5" aria-hidden="true"><use href="#icon-save"></use></svg>
+            <span>Guardar retiro</span>
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <div id="toast" class="fixed bottom-4 left-4 right-4 z-[60] hidden rounded-lg px-4 py-3 text-sm font-semibold shadow-lg sm:left-auto sm:w-96"></div>
+
+    <script type="module" src="./ui/app-financiero.js"></script>
+  </body>
+</html>

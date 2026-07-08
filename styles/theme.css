@@ -1,0 +1,62 @@
+.dark body,
+.dark #loginScreen {
+  background: #0f172a;
+  color: #e5e7eb;
+}
+
+.dark header,
+.dark section,
+.dark article,
+.dark [role="dialog"] > div {
+  background: #111827;
+  color: #e5e7eb;
+  box-shadow: 0 10px 30px rgb(0 0 0 / 0.22);
+}
+
+.dark .bg-white,
+.dark .bg-gray-50,
+.dark .bg-gray-100 {
+  background-color: #111827 !important;
+}
+
+.dark .text-gray-950,
+.dark .text-gray-900,
+.dark .text-gray-800,
+.dark .text-gray-700 {
+  color: #f9fafb !important;
+}
+
+.dark .text-gray-600,
+.dark .text-gray-500,
+.dark .text-gray-400 {
+  color: #9ca3af !important;
+}
+
+.dark .border-gray-100,
+.dark .border-gray-200,
+.dark .border-gray-300 {
+  border-color: #374151 !important;
+}
+
+.dark input,
+.dark select,
+.dark textarea {
+  background: #0f172a !important;
+  border-color: #374151 !important;
+  color: #f9fafb !important;
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: #6b7280;
+}
+
+.dark button.bg-white,
+.dark button.bg-gray-100 {
+  background: #1f2937 !important;
+  color: #f9fafb !important;
+}
+
+.dark .divide-gray-100 > :not([hidden]) ~ :not([hidden]) {
+  border-color: #374151 !important;
+}
