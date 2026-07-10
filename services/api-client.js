@@ -1,5 +1,3 @@
-const apiBaseStorageKey = "EPIKA_API_BASE_URL";
-
 export function getAppConfig() {
   return window.EPIKA_CONFIG || {};
 }
@@ -16,9 +14,8 @@ export function usesServerlessApi(feature = "") {
 
 export function getApiUrl(path) {
   const normalizedPath = String(path || "").startsWith("/") ? path : `/${path}`;
-  const configBase = window.EPIKA_CONFIG?.apiBaseUrl || window.EPIKA_API_BASE_URL || "";
-  const overrideBase = localStorage.getItem(apiBaseStorageKey) || configBase;
-  const cleanBase = String(overrideBase).trim().replace(/\/+$/, "");
+  const configBase = getAppConfig().apiBaseUrl || "";
+  const cleanBase = String(configBase).trim().replace(/\/+$/, "");
 
   if (cleanBase) {
     return `${cleanBase}${normalizedPath}`;
@@ -28,13 +25,8 @@ export function getApiUrl(path) {
 }
 
 export function explainLocalApiError(response) {
-  const isLiveServer = ["127.0.0.1:5500", "localhost:5500"].includes(window.location.host);
-
-  if (isLiveServer && response.status === 405) {
-    return [
-      "Live Server no ejecuta /api.",
-      "Abre la app con el servidor local del proyecto o configura app-config.js con un apiBaseUrl.",
-    ].join(" ");
+  if (response.status === 405) {
+    return "La API serverless no esta disponible en esta ruta. Revisa apiBaseUrl en app-config.js.";
   }
 
   return "";

@@ -1,8 +1,12 @@
 window.EPIKA_CONFIG = {
-  runtime: "static",
+  runtime: "serverless",
+
+  // Si la web y las APIs estan en el mismo dominio de Vercel, dejalo vacio.
+  // Si el frontend esta en otro dominio, pon: "https://tu-app.vercel.app"
   apiBaseUrl: "",
+
   ai: {
-    mode: "direct",
+    mode: "serverless",
     provider: "groq",
     groq: {
       apiKey: "",
@@ -13,13 +17,15 @@ window.EPIKA_CONFIG = {
       model: "gemini-3.5-flash",
     },
   },
+
   cloudinary: {
-    mode: "unsigned",
+    mode: "serverless",
     cloudName: "",
     uploadPreset: "",
     folder: "epikaja/productos",
   },
+
   pos: {
-    mode: "client",
+    mode: "serverless",
   },
 };

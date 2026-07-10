@@ -3,13 +3,6 @@ const legacyRoles = {
   qfrRyPzhfybit3f38G0JmWajmU43: "vendedor",
 };
 
-const defaultAllowedOrigins = [
-  "http://127.0.0.1:5500",
-  "http://localhost:5500",
-  "http://127.0.0.1:3000",
-  "http://localhost:3000",
-];
-
 function normalizePrivateKey(value) {
   return String(value || "")
     .trim()
@@ -45,7 +38,7 @@ async function getFirebaseAdmin() {
   try {
     return (await import("firebase-admin")).default;
   } catch (error) {
-    throw new Error("Falta instalar firebase-admin. Para probar solo IA en local usa LOCAL_DEV_BYPASS_AUTH=true.");
+    throw new Error("Falta instalar firebase-admin en el entorno serverless.");
   }
 }
 
@@ -90,14 +83,6 @@ export function getBearerToken(request) {
 }
 
 export async function verifyRequestUser(request, allowedRoles = []) {
-  if (process.env.LOCAL_DEV_BYPASS_AUTH === "true") {
-    return {
-      uid: "local-dev",
-      email: "local@epikaja.test",
-      rol: allowedRoles[0] || "admin",
-    };
-  }
-
   const token = getBearerToken(request);
   if (!token) {
     const error = new Error("Falta token de autenticacion.");
@@ -135,13 +120,12 @@ export function handleApiError(response, error, fallback = "Error interno.") {
 
 export function applyCors(request, response) {
   const origin = request.headers.origin || request.headers.Origin || "";
-  const envOrigins = String(process.env.ALLOWED_ORIGINS || "")
+  const allowedOrigins = String(process.env.ALLOWED_ORIGINS || "")
     .split(",")
     .map((value) => value.trim())
     .filter(Boolean);
-  const allowedOrigins = new Set([...defaultAllowedOrigins, ...envOrigins]);
 
-  if (origin && allowedOrigins.has(origin)) {
+  if (origin && allowedOrigins.includes(origin)) {
     response.setHeader("Access-Control-Allow-Origin", origin);
     response.setHeader("Vary", "Origin");
   }
