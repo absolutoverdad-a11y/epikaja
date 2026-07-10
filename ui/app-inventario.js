@@ -164,12 +164,12 @@ function revokeSelectedPreview() {
   }
 }
 
-function setImagePreview(url, { sizeKb = null, estado = "" } = {}) {
+function setImagePreview(url, { sizeKb = null, extension = "WebP", estado = "" } = {}) {
   const src = url || DEFAULT_PRODUCT_IMAGE_URL;
   imagenPreview.src = src;
   imagenPreview.classList.remove("hidden");
   imagenPlaceholder.classList.add("hidden");
-  imagenPeso.textContent = sizeKb ? `${sizeKb} KB WebP` : "";
+  imagenPeso.textContent = sizeKb ? `${sizeKb} KB ${extension}` : "";
   imagenEstado.textContent = estado || "Imagen lista.";
 }
 
@@ -260,7 +260,7 @@ async function handleSelectedImage(file) {
       quality: 0.75,
     });
     const aiProcessed = await procesarImagenProducto(file, {
-      maxWidth: 1024,
+      maxWidth: 800,
       quality: 0.75,
     });
 
@@ -270,6 +270,7 @@ async function handleSelectedImage(file) {
     selectedImagePreviewUrl = processed.previewUrl;
     setImagePreview(processed.previewUrl, {
       sizeKb: processed.sizeKb,
+      extension: processed.extension,
       estado: "Lista para subir como WebP.",
     });
     setAnalyzeState(false);

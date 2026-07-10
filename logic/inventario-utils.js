@@ -114,7 +114,7 @@ function canvasToBlob(canvas, type, quality) {
     canvas.toBlob(
       (blob) => {
         if (!blob) {
-          reject(new Error("No se pudo convertir la imagen a WebP."));
+          reject(new Error("No se pudo convertir la imagen en este dispositivo."));
           return;
         }
         resolve(blob);
@@ -123,6 +123,21 @@ function canvasToBlob(canvas, type, quality) {
       quality
     );
   });
+}
+
+function browserCanEncodeWebP() {
+  const canvas = document.createElement("canvas");
+  canvas.width = 1;
+  canvas.height = 1;
+  return canvas.toDataURL("image/webp").startsWith("data:image/webp");
+}
+
+async function canvasToWebPBlob(canvas, quality) {
+  const blob = await canvasToBlob(canvas, "image/webp", quality);
+  if (blob?.type !== "image/webp") {
+    throw new Error("Este navegador no pudo generar WebP.");
+  }
+  return blob;
 }
 
 async function loadImageFromFile(file) {
@@ -158,6 +173,10 @@ export async function procesarImagenProducto(file, { maxWidth = 600, quality = 0
     throw new Error("Selecciona un archivo de imagen valido.");
   }
 
+  if (!browserCanEncodeWebP()) {
+    throw new Error("Este navegador no permite convertir fotos a WebP. Actualiza el navegador o usa otro dispositivo.");
+  }
+
   const source = await loadImageFromFile(file);
   const originalWidth = source.width;
   const originalHeight = source.height;
@@ -166,27 +185,40 @@ export async function procesarImagenProducto(file, { maxWidth = 600, quality = 0
     throw new Error("La imagen no tiene dimensiones validas.");
   }
 
-  const scale = originalWidth > maxWidth ? maxWidth / originalWidth : 1;
-  const width = Math.max(1, Math.round(originalWidth * scale));
-  const height = Math.max(1, Math.round(originalHeight * scale));
-  const canvas = document.createElement("canvas");
-  const context = canvas.getContext("2d", { alpha: false });
+  const retryWidths = [...new Set([maxWidth, 480, 360].filter((value) => value > 0))];
+  let lastError = null;
 
-  canvas.width = width;
-  canvas.height = height;
-  context.fillStyle = "#ffffff";
-  context.fillRect(0, 0, width, height);
-  context.drawImage(source, 0, 0, width, height);
+  for (const targetMaxWidth of retryWidths) {
+    const scale = originalWidth > targetMaxWidth ? targetMaxWidth / originalWidth : 1;
+    const width = Math.max(1, Math.round(originalWidth * scale));
+    const height = Math.max(1, Math.round(originalHeight * scale));
+    const canvas = document.createElement("canvas");
+    const context = canvas.getContext("2d", { alpha: false });
+
+    canvas.width = width;
+    canvas.height = height;
+    context.fillStyle = "#ffffff";
+    context.fillRect(0, 0, width, height);
+    context.drawImage(source, 0, 0, width, height);
+
+    try {
+      const blob = await canvasToWebPBlob(canvas, quality);
+      if (source.close) source.close();
+
+      return {
+        blob,
+        previewUrl: URL.createObjectURL(blob),
+        sizeKb: Math.round((blob.size / 1024) * 10) / 10,
+        mimeType: "image/webp",
+        extension: "WebP",
+        width,
+        height,
+      };
+    } catch (error) {
+      lastError = error;
+    }
+  }
 
   if (source.close) source.close();
-
-  const blob = await canvasToBlob(canvas, "image/webp", quality);
-
-  return {
-    blob,
-    previewUrl: URL.createObjectURL(blob),
-    sizeKb: Math.round((blob.size / 1024) * 10) / 10,
-    width,
-    height,
-  };
+  throw new Error(lastError?.message || "No se pudo convertir la imagen a WebP. Intenta con una foto mas pequena.");
 }

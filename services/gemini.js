@@ -20,8 +20,11 @@ function blobToDataUrl(blob) {
 }
 
 function extractBase64Image(dataUrl) {
-  const match = String(dataUrl || "").match(/^data:image\/webp;base64,(.+)$/);
-  return match?.[1] || "";
+  const match = String(dataUrl || "").match(/^data:(image\/[a-z0-9.+-]+);base64,(.+)$/i);
+  return {
+    mimeType: match?.[1] || "",
+    imageBase64: match?.[2] || "",
+  };
 }
 
 function parseAiJson(value) {
@@ -85,7 +88,7 @@ function extractGeminiPayload(result) {
   throw new Error("Gemini no devolvio un JSON reconocible.");
 }
 
-async function analizarConGroqDirecto(imageBase64) {
+async function analizarConGroqDirecto(imageBase64, mimeType) {
   const config = getAppConfig().ai?.groq || {};
   const apiKey = String(config.apiKey || "").trim();
   const model = String(config.model || "meta-llama/llama-4-scout-17b-16e-instruct").trim();
@@ -109,7 +112,7 @@ async function analizarConGroqDirecto(imageBase64) {
             { type: "text", text: analysisPrompt },
             {
               type: "image_url",
-              image_url: { url: `data:image/webp;base64,${imageBase64}` },
+              image_url: { url: `data:${mimeType};base64,${imageBase64}` },
             },
           ],
         },
@@ -128,7 +131,7 @@ async function analizarConGroqDirecto(imageBase64) {
   return normalizeAiResponse(parseAiJson(result?.choices?.[0]?.message?.content || ""));
 }
 
-async function analizarConGeminiDirecto(imageBase64) {
+async function analizarConGeminiDirecto(imageBase64, mimeType) {
   const config = getAppConfig().ai?.gemini || {};
   const apiKey = String(config.apiKey || "").trim();
   const model = String(config.model || "gemini-3.5-flash").trim();
@@ -147,7 +150,7 @@ async function analizarConGeminiDirecto(imageBase64) {
       model,
       input: [
         { type: "text", text: analysisPrompt },
-        { type: "image", data: imageBase64, mime_type: "image/webp" },
+        { type: "image", data: imageBase64, mime_type: mimeType },
       ],
       response_format: {
         type: "text",
@@ -164,7 +167,7 @@ async function analizarConGeminiDirecto(imageBase64) {
   return normalizeAiResponse(extractGeminiPayload(result));
 }
 
-async function analizarConServidor(imageBase64) {
+async function analizarConServidor(imageBase64, mimeType) {
   const token = await getAuthToken();
   const apiResponse = await fetch(getApiUrl("/api/analizar-prenda-gemini"), {
     method: "POST",
@@ -174,7 +177,7 @@ async function analizarConServidor(imageBase64) {
     },
     body: JSON.stringify({
       imageBase64,
-      mimeType: "image/webp",
+      mimeType,
     }),
   });
   const apiResult = await apiResponse.json().catch(() => ({}));
@@ -191,21 +194,29 @@ export async function analizarPrendaConGemini(webpBlob) {
     throw new Error("Primero selecciona una imagen valida.");
   }
 
+  if (webpBlob.type !== "image/webp") {
+    throw new Error("La foto debe convertirse a WebP antes de analizarla.");
+  }
+
   const imageDataUrl = await blobToDataUrl(webpBlob);
-  const imageBase64 = extractBase64Image(imageDataUrl);
+  const { imageBase64, mimeType } = extractBase64Image(imageDataUrl);
+
+  if (!imageBase64 || !mimeType) {
+    throw new Error("No se pudo preparar la foto en este dispositivo. Intenta tomarla de nuevo o subir otra imagen.");
+  }
 
   if (usesServerlessApi("ai")) {
-    return analizarConServidor(imageBase64);
+    return analizarConServidor(imageBase64, mimeType);
   }
 
   const provider = String(getAppConfig().ai?.provider || "groq").trim().toLowerCase();
 
   if (provider === "gemini") {
-    return analizarConGeminiDirecto(imageBase64);
+    return analizarConGeminiDirecto(imageBase64, mimeType);
   }
 
   if (provider === "groq") {
-    return analizarConGroqDirecto(imageBase64);
+    return analizarConGroqDirecto(imageBase64, mimeType);
   }
 
   throw new Error(`Proveedor de IA no soportado: ${provider}.`);

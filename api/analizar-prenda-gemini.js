@@ -293,14 +293,20 @@ export default async function handler(request, response) {
   }
 
   const { imageBase64, mimeType = "image/webp" } = getRequestBody(request);
+  const normalizedMimeType = String(mimeType || "").trim().toLowerCase();
 
   if (!imageBase64 || typeof imageBase64 !== "string") {
-    response.status(400).json({ error: "Falta imageBase64." });
+    response.status(400).json({ error: "No se recibio la foto procesada. Intenta tomarla de nuevo o subir otra imagen." });
     return;
   }
 
-  if (mimeType !== "image/webp" || !/^[A-Za-z0-9+/=]+$/.test(imageBase64)) {
-    response.status(400).json({ error: "La imagen debe enviarse como WebP base64 valido." });
+  if (normalizedMimeType !== "image/webp") {
+    response.status(400).json({ error: "La imagen debe enviarse convertida a WebP." });
+    return;
+  }
+
+  if (!/^[A-Za-z0-9+/=]+$/.test(imageBase64)) {
+    response.status(400).json({ error: "La imagen base64 no es valida." });
     return;
   }
 
@@ -313,7 +319,7 @@ export default async function handler(request, response) {
     const data = await analyzeWithProvider({
       ...aiConfig,
       imageBase64,
-      mimeType,
+      mimeType: normalizedMimeType,
     });
 
     response.status(200).json({

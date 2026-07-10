@@ -90,6 +90,10 @@ export async function subirImagenProducto(codigo, webpBlob) {
     throw new Error("La imagen procesada no es valida.");
   }
 
+  if (webpBlob.type !== "image/webp") {
+    throw new Error("La imagen debe estar convertida a WebP antes de subirla.");
+  }
+
   if (!usesServerlessApi("cloudinary")) {
     const config = getAppConfig().cloudinary || {};
     const cloudName = String(config.cloudName || "").trim();
