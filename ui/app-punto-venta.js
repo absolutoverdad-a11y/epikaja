@@ -5,6 +5,14 @@ import {
   logout,
 } from "../services/productos.js";
 import { getUsuarioPerfil } from "../services/usuarios.js";
+import { explainLocalApiError, getApiUrl, usesServerlessApi } from "../services/api-client.js";
+import {
+  collection,
+  doc,
+  runTransaction,
+  serverTimestamp,
+} from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+import { db } from "../firebase-config.js";
 import {
   clearCurrentUserRole,
   guardCurrentRoute,
@@ -15,9 +23,6 @@ import {
 import { DEFAULT_PRODUCT_IMAGE_URL, normalizeCode } from "../logic/inventario-utils.js";
 import { loadAlpine } from "./alpine-loader.js";
 import { bindThemeToggle, initTheme } from "./theme.js";
-
-import { collection, doc, runTransaction, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
-import { db } from "../firebase-config.js"; 
 
 let currentUser = null;
 let alpineBooted = false;
@@ -244,6 +249,101 @@ function addProductToCart(producto) {
   return true;
 }
 
+async function cobrarVentaEnServidor() {
+  if (!currentUser) throw new Error("Inicia sesion para cobrar.");
+
+  const token = await currentUser.getIdToken();
+  const response = await fetch(getApiUrl("/api/cobrar-venta"), {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      cart: cart.map((item) => ({
+        codigoBarras: item.codigoBarras ?? item.id,
+        cantidad: item.cantidad,
+      })),
+    }),
+  });
+  const result = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(explainLocalApiError(response) || result?.error || "No se pudo procesar la venta.");
+  }
+
+  return result;
+}
+
+async function cobrarVentaEnCliente() {
+  if (!currentUser) throw new Error("Inicia sesion para cobrar.");
+
+  await runTransaction(db, async (transaction) => {
+    const transaccionesRef = doc(collection(db, "transacciones"));
+    let totalVenta = 0;
+    let totalPiezas = 0;
+    const productosUpdates = [];
+    const prendasVendidas = [];
+
+    for (const item of cart) {
+      const codigo = String(item.codigoBarras ?? item.id ?? "").trim();
+      const productRef = doc(db, "productos", codigo);
+      const productSnap = await transaction.get(productRef);
+
+      if (!productSnap.exists()) {
+        throw new Error(`El producto ${item.nombre || codigo} no existe en inventario.`);
+      }
+
+      const producto = productSnap.data();
+      const currentStock = Number(producto.stock || 0);
+      const cantidad = Number(item.cantidad || 0);
+      const precioUnitario = Number(producto.precioVenta || item.precioVenta || 0);
+
+      if (currentStock < cantidad) {
+        throw new Error(`Stock insuficiente para ${producto.nombre || item.nombre || codigo}. Disponible: ${currentStock}`);
+      }
+
+      const subtotal = Math.round(precioUnitario * cantidad * 100) / 100;
+      totalVenta += subtotal;
+      totalPiezas += cantidad;
+
+      productosUpdates.push({ ref: productRef, stock: currentStock - cantidad });
+      prendasVendidas.push({
+        codigo,
+        nombre: String(producto.nombre || item.nombre || "Producto sin nombre"),
+        cantidad,
+        precioUnitario,
+        subtotal,
+      });
+    }
+
+    productosUpdates.forEach((update) => {
+      transaction.update(update.ref, { stock: update.stock });
+    });
+
+    transaction.set(transaccionesRef, {
+      tipo: "ingreso_corte",
+      monto: Math.round(totalVenta * 100) / 100,
+      concepto: `Venta POS: ${totalPiezas} prendas`,
+      cuenta: "caja",
+      prendas: prendasVendidas,
+      ingresoExtra: null,
+      origen: "pos",
+      usuarioUid: currentUser.uid,
+      usuarioEmail: currentUser.email,
+      fecha: serverTimestamp(),
+    });
+  });
+}
+
+async function cobrarVenta() {
+  if (usesServerlessApi("pos")) {
+    return cobrarVentaEnServidor();
+  }
+
+  return cobrarVentaEnCliente();
+}
+
 async function stopScanner() {
   processingScan = false;
 
@@ -435,11 +535,10 @@ cartList.addEventListener("click", (event) => {
   saveCartToStorage();
 });
 
-  // --- NUEVA LÓGICA DE PERSISTENCIA ATÓMICA PARA COBRAR LA VENTA ---
   if (checkoutButton) {
     checkoutButton.addEventListener("click", async () => {
       if (cart.length === 0) {
-        showToast("El carrito está vacío.", "error");
+        showToast("El carrito esta vacio.", "error");
         return;
       }
 
@@ -447,59 +546,11 @@ cartList.addEventListener("click", (event) => {
       checkoutButton.textContent = "Procesando...";
 
       try {
-        await runTransaction(db, async (transaction) => {
-          const transaccionesRef = doc(collection(db, "transacciones"));
-          let totalVenta = 0;
-          const productosUpdates = [];
-          const prendasVendidas = [];
-
-          for (const item of cart) {
-            const productRef = doc(db, "productos", String(item.codigoBarras ?? item.id));
-            const productSnap = await transaction.get(productRef);
-
-            if (!productSnap.exists()) {
-              throw new Error(`El producto ${item.nombre} no existe en inventario.`);
-            }
-
-            const currentStock = Number(productSnap.data().stock || 0);
-            if (currentStock < item.cantidad) {
-              throw new Error(`Stock insuficiente para ${item.nombre}. Disponible: ${currentStock}`);
-            }
-
-            totalVenta += Number(item.precioVenta || 0) * item.cantidad;
-            productosUpdates.push({ ref: productRef, nuevoStock: currentStock - item.cantidad });
-            prendasVendidas.push({
-              codigo: String(item.codigoBarras ?? item.id),
-              nombre: item.nombre,
-              cantidad: item.cantidad,
-              precioUnitario: Number(item.precioVenta || 0),
-              subtotal: Math.round(Number(item.precioVenta || 0) * item.cantidad * 100) / 100,
-            });
-          }
-
-          productosUpdates.forEach(({ ref, nuevoStock }) => {
-            transaction.update(ref, { stock: nuevoStock });
-          });
-
-          transaction.set(transaccionesRef, {
-            tipo: "ingreso_corte",
-            monto: Math.round(totalVenta * 100) / 100,
-            concepto: `Venta POS: ${prendasVendidas.reduce((sum, item) => sum + item.cantidad, 0)} prendas`,
-            cuenta: "caja",
-            prendas: prendasVendidas,
-            ingresoExtra: null,
-            origen: "pos",
-            usuarioUid: currentUser.uid,
-            usuarioEmail: currentUser.email,
-            fecha: serverTimestamp(),
-          });
-        });
-
-        showToast("¡Compra cobrada con éxito e inventario actualizado!", "success");
+        await cobrarVenta();
+        showToast("Compra cobrada con exito e inventario actualizado.", "success");
         cart = [];
         clearCartStorage();
         renderCart();
-
       } catch (error) {
         console.error("Error en cobro de venta:", error);
         showToast(error.message || "No se pudo procesar la venta.", "error");

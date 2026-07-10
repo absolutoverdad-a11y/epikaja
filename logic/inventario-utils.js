@@ -1,4 +1,4 @@
-export const tallas = ["CH", "M", "G", "XG", "24", "26", "28", "30", "32", "34", "36", "38"];
+
 
 export const DEFAULT_PRODUCT_IMAGE_URL = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
 <svg xmlns="http://www.w3.org/2000/svg" width="600" height="600" viewBox="0 0 600 600">

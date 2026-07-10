@@ -1,4 +1,13 @@
 import crypto from "node:crypto";
+import { applyCors, getRequestBody, handleApiError, verifyRequestUser } from "./_firebase-admin.js";
+
+function sanitizePublicId(value) {
+  return String(value ?? "")
+    .trim()
+    .replace(/\s+/g, "-")
+    .replace(/[^A-Za-z0-9_-]/g, "")
+    .slice(0, 120);
+}
 
 function signCloudinaryParams(params, apiSecret) {
   const payload = Object.entries(params)
@@ -13,19 +22,9 @@ function signCloudinaryParams(params, apiSecret) {
     .digest("hex");
 }
 
-function getRequestBody(request) {
-  if (!request.body) return {};
-  if (typeof request.body === "string") {
-    try {
-      return JSON.parse(request.body);
-    } catch (error) {
-      return {};
-    }
-  }
-  return request.body;
-}
-
 export default async function handler(request, response) {
+  applyCors(request, response);
+
   if (request.method === "OPTIONS") {
     response.status(204).end();
     return;
@@ -33,6 +32,13 @@ export default async function handler(request, response) {
 
   if (request.method !== "POST") {
     response.status(405).json({ error: "Metodo no permitido." });
+    return;
+  }
+
+  try {
+    await verifyRequestUser(request, ["admin"]);
+  } catch (error) {
+    handleApiError(response, error, "No se pudo validar la sesion.");
     return;
   }
 
@@ -47,10 +53,19 @@ export default async function handler(request, response) {
   }
 
   const { codigo, imageDataUrl } = getRequestBody(request);
-  const normalizedCode = String(codigo || "").trim();
+  const normalizedCode = sanitizePublicId(codigo);
 
   if (!normalizedCode || !imageDataUrl) {
     response.status(400).json({ error: "Faltan codigo o imageDataUrl." });
+    return;
+  }
+
+  if (
+    typeof imageDataUrl !== "string"
+    || !imageDataUrl.startsWith("data:image/webp;base64,")
+    || imageDataUrl.length > 2_500_000
+  ) {
+    response.status(413).json({ error: "La imagen debe ser WebP y pesar menos de 2.5 MB." });
     return;
   }
 

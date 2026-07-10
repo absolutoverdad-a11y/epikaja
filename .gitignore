@@ -4,3 +4,4 @@
 .vercel
 node_modules
 firestore.rules
+app-config.js

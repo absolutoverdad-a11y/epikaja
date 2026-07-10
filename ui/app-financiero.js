@@ -20,6 +20,7 @@ import {
   calculateBalances,
   createExcelReport,
   cuentaLabels,
+  getTransactionDate,
   getTransactionCuenta,
   moneyFormatter,
   outputSign,
@@ -65,6 +66,7 @@ const saldoInicialAhorro = $("#saldoInicialAhorro");
 
 const formCorte = $("#formCorte");
 const cuentaCorte = $("#cuentaCorte");
+const fechaOperacionCorte = $("#fechaOperacionCorte");
 const montoCorte = $("#montoCorte");
 const ceroVentas = $("#ceroVentas");
 const conceptoExtraCorte = $("#conceptoExtraCorte");
@@ -73,11 +75,13 @@ const listaPrendas = $("#listaPrendas");
 const agregarPrenda = $("#agregarPrenda");
 
 const formGasto = $("#formGasto");
+const fechaOperacionGasto = $("#fechaOperacionGasto");
 const cuentaGasto = $("#cuentaGasto");
 const conceptoGasto = $("#conceptoGasto");
 const montoGasto = $("#montoGasto");
 
 const formRetiro = $("#formRetiro");
+const fechaOperacionRetiro = $("#fechaOperacionRetiro");
 const cuentaRetiro = $("#cuentaRetiro");
 const tipoRetiro = $("#tipoRetiro");
 const notaRetiroWrapper = $("#notaRetiroWrapper");
@@ -168,6 +172,30 @@ function formatDate(timestamp) {
   });
 }
 
+function getTodayInputValue() {
+  const now = new Date();
+  const offsetMs = now.getTimezoneOffset() * 60 * 1000;
+  return new Date(now.getTime() - offsetMs).toISOString().slice(0, 10);
+}
+
+function resetOperacionDates() {
+  const today = getTodayInputValue();
+  fechaOperacionCorte.value = today;
+  fechaOperacionGasto.value = today;
+  fechaOperacionRetiro.value = today;
+}
+
+function isValidOperacionDate(value) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(String(value || ""));
+}
+
+function formatOperacionDate(value) {
+  if (!value) return "";
+  const [year, month, day] = String(value).split("-");
+  if (!year || !month || !day) return value;
+  return `${day}/${month}/${year}`;
+}
+
 function renderBalances() {
   saldosActuales = calculateBalances(allTransactions, saldosIniciales);
   saldoActual.textContent = moneyFormatter.format(saldosActuales.total);
@@ -246,6 +274,7 @@ function updateCorteTotal() {
 
 function resetCorteForm() {
   formCorte.reset();
+  fechaOperacionCorte.value = getTodayInputValue();
   cuentaCorte.value = "caja";
   montoCorte.value = "";
   montoCorte.disabled = false;
@@ -266,6 +295,8 @@ function renderTransactions(transacciones) {
   }
 
   historial.innerHTML = transacciones
+    .slice()
+    .sort((a, b) => (getTransactionDate(b)?.getTime() ?? 0) - (getTransactionDate(a)?.getTime() ?? 0))
     .map((item) => {
       const sign = outputSign[item.tipo] ?? -1;
       const isIncome = sign > 0;
@@ -282,7 +313,9 @@ function renderTransactions(transacciones) {
               <span class="rounded-full bg-gray-100 px-2 py-1 text-xs font-semibold text-gray-600">${escapeHtml(cuenta)}</span>
             </div>
             <p class="mt-1 truncate text-sm text-gray-600">${escapeHtml(detail)}</p>
-            <p class="mt-1 text-xs text-gray-400">${escapeHtml(formatDate(item.fecha))}</p>
+            <p class="mt-1 text-xs text-gray-400">
+              ${escapeHtml(item.fechaOperacion ? `Operacion: ${formatOperacionDate(item.fechaOperacion)} | Guardado: ${formatDate(item.fecha)}` : formatDate(item.fecha))}
+            </p>
           </div>
           <p class="shrink-0 text-right font-bold ${amountClass}">${signedAmount}</p>
         </article>
@@ -487,9 +520,15 @@ formCorte.addEventListener("submit", async (event) => {
   const prendas = ceroVentas.checked ? [] : getPrendasFromForm();
   const extraAmount = parseAmount(montoExtraCorte.value) ?? 0;
   const extraConcept = conceptoExtraCorte.value.trim();
+  const fechaOperacion = fechaOperacionCorte.value;
 
   if (prendas.includes(false)) {
     showToast("Completa nombre, cantidad y precio de cada prenda.", "error");
+    return;
+  }
+
+  if (!isValidOperacionDate(fechaOperacion)) {
+    showToast("Selecciona una fecha valida para el corte.", "error");
     return;
   }
 
@@ -518,6 +557,7 @@ formCorte.addEventListener("submit", async (event) => {
       cuenta: cuentaCorte.value,
       prendas,
       ingresoExtra: extraAmount > 0 ? { concepto: extraConcept, monto: extraAmount } : null,
+      fechaOperacion,
       user: currentUser,
     });
     resetCorteForm();
@@ -533,9 +573,15 @@ formGasto.addEventListener("submit", async (event) => {
   event.preventDefault();
   const amount = parseAmount(montoGasto.value);
   const cuenta = cuentaGasto.value;
+  const fechaOperacion = fechaOperacionGasto.value;
 
   if (!amount || amount <= 0) {
     showToast("Ingresa un monto de gasto valido.", "error");
+    return;
+  }
+
+  if (!isValidOperacionDate(fechaOperacion)) {
+    showToast("Selecciona una fecha valida para el gasto.", "error");
     return;
   }
 
@@ -551,9 +597,11 @@ formGasto.addEventListener("submit", async (event) => {
       monto: amount,
       concepto: conceptoGasto.value,
       cuenta,
+      fechaOperacion,
       user: currentUser,
     });
     formGasto.reset();
+    fechaOperacionGasto.value = getTodayInputValue();
     cuentaGasto.value = "caja";
     closeActiveModals();
     showToast("Gasto guardado correctamente.");
@@ -567,11 +615,17 @@ formRetiro.addEventListener("submit", async (event) => {
   event.preventDefault();
   const amount = parseAmount(montoRetiro.value);
   const cuenta = cuentaRetiro.value;
+  const fechaOperacion = fechaOperacionRetiro.value;
   const isExternal = tipoRetiro.value === "gasto_externo";
   const note = notaRetiro.value.trim();
 
   if (!amount || amount <= 0) {
     showToast("Ingresa un monto de retiro valido.", "error");
+    return;
+  }
+
+  if (!isValidOperacionDate(fechaOperacion)) {
+    showToast("Selecciona una fecha valida para el retiro.", "error");
     return;
   }
 
@@ -592,9 +646,11 @@ formRetiro.addEventListener("submit", async (event) => {
       monto: amount,
       concepto: isExternal ? note : "Pago de sueldo",
       cuenta,
+      fechaOperacion,
       user: currentUser,
     });
     formRetiro.reset();
+    fechaOperacionRetiro.value = getTodayInputValue();
     cuentaRetiro.value = "caja";
     notaRetiroWrapper.classList.add("hidden");
     notaRetiro.required = false;
@@ -610,6 +666,7 @@ descargarReporte.addEventListener("click", downloadExcelReport);
 
 initTheme();
 bindThemeToggle();
+resetOperacionDates();
 
 listenAuth(async (user) => {
   stopDataListeners();

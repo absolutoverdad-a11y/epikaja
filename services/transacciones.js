@@ -8,8 +8,6 @@ import {
   query,
   serverTimestamp,
   setDoc,
-  Timestamp,
-  where,
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 import {
   onAuthStateChanged,
@@ -62,7 +60,7 @@ export function listenTransacciones(onData, onError) {
   );
 }
 
-export async function saveTransaction({ tipo, monto, concepto, cuenta, prendas = [], ingresoExtra = null, user }) {
+export async function saveTransaction({ tipo, monto, concepto, cuenta, prendas = [], ingresoExtra = null, fechaOperacion = "", user }) {
   await addDoc(transaccionesRef, {
     tipo,
     monto,
@@ -70,6 +68,7 @@ export async function saveTransaction({ tipo, monto, concepto, cuenta, prendas =
     cuenta,
     prendas,
     ingresoExtra,
+    fechaOperacion,
     usuarioEmail: user?.email ?? "",
     usuarioUid: user?.uid ?? "",
     fecha: serverTimestamp(),
@@ -90,16 +89,26 @@ export async function saveSaldos({ caja, ahorro, user }) {
 }
 
 export async function getTransaccionesByFecha({ start, end }) {
-  const reportQuery = query(
-    transaccionesRef,
-    where("fecha", ">=", Timestamp.fromDate(start)),
-    where("fecha", "<=", Timestamp.fromDate(end)),
-    orderBy("fecha", "asc")
-  );
+  const reportQuery = query(transaccionesRef, orderBy("fecha", "asc"));
 
   const snapshot = await getDocs(reportQuery);
-  return snapshot.docs.map((transactionDoc) => ({
-    id: transactionDoc.id,
-    ...transactionDoc.data(),
-  }));
+  return snapshot.docs
+    .map((transactionDoc) => ({
+      id: transactionDoc.id,
+      ...transactionDoc.data(),
+    }))
+    .filter((item) => {
+      const operationDate = getOperationDate(item);
+      return operationDate && operationDate >= start && operationDate <= end;
+    });
+}
+
+function getOperationDate(item) {
+  if (typeof item.fechaOperacion === "string" && /^\d{4}-\d{2}-\d{2}$/.test(item.fechaOperacion)) {
+    return new Date(`${item.fechaOperacion}T12:00:00`);
+  }
+
+  if (item.fecha?.toDate) return item.fecha.toDate();
+  if (item.fecha instanceof Date) return item.fecha;
+  return null;
 }

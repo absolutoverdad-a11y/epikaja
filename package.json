@@ -4,6 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "check": "node --check src/ui/router.js && node --check services/gemini.js && node --check services/productos.js && node --check api/analizar-prenda-gemini.js && node --check api/subir-imagen-producto.js"
+    "check": "node --check src/ui/router.js && node --check services/api-client.js && node --check services/gemini.js && node --check services/productos.js && node --check api/_firebase-admin.js && node --check api/analizar-prenda-gemini.js && node --check api/subir-imagen-producto.js && node --check api/cobrar-venta.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.0.0"
   }
 }

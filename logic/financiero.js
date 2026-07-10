@@ -29,6 +29,16 @@ export function parseAmount(value) {
 }
 
 export function getTransactionDate(item) {
+  if (typeof item.fechaOperacion === "string" && /^\d{4}-\d{2}-\d{2}$/.test(item.fechaOperacion)) {
+    return new Date(`${item.fechaOperacion}T12:00:00`);
+  }
+
+  if (item.fecha?.toDate) return item.fecha.toDate();
+  if (item.fecha instanceof Date) return item.fecha;
+  return null;
+}
+
+export function getSavedDate(item) {
   if (item.fecha?.toDate) return item.fecha.toDate();
   if (item.fecha instanceof Date) return item.fecha;
   return null;
@@ -188,7 +198,7 @@ export function buildHistoryRows(transactions) {
   let runningBalance = 0;
 
   return [
-    ["Fecha", "Tipo", "Cuenta", "Concepto", "Monto", "Efecto", "Saldo acumulado", "Usuario", "Prendas", "Extra"],
+    ["Fecha operacion", "Fecha guardado", "Tipo", "Cuenta", "Concepto", "Monto", "Efecto", "Saldo acumulado", "Usuario", "Prendas", "Extra"],
     ...transactions
       .slice()
       .sort((a, b) => (getTransactionDate(a)?.getTime() ?? 0) - (getTransactionDate(b)?.getTime() ?? 0))
@@ -199,6 +209,7 @@ export function buildHistoryRows(transactions) {
 
         return [
           formatDateForExcel(getTransactionDate(item)),
+          formatDateForExcel(getSavedDate(item)),
           typeLabels[item.tipo] ?? item.tipo,
           cuentaLabels[getTransactionCuenta(item)],
           item.concepto,
@@ -263,6 +274,7 @@ export function createExcelReport({ XLSX, transactions, start, end, saldosActual
   summarySheet["!merges"] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 2 } }];
   historySheet["!cols"] = [
     { wch: 20 },
+    { wch: 20 },
     { wch: 18 },
     { wch: 12 },
     { wch: 28 },
@@ -275,7 +287,7 @@ export function createExcelReport({ XLSX, transactions, start, end, saldosActual
   ];
 
   applySheetStyles(summarySheet, XLSX, [1]);
-  applySheetStyles(historySheet, XLSX, [4, 5, 6]);
+  applySheetStyles(historySheet, XLSX, [5, 6, 7]);
 
   XLSX.utils.book_append_sheet(workbook, summarySheet, "Vista general");
   XLSX.utils.book_append_sheet(workbook, historySheet, "Historial completo");

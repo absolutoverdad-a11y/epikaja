@@ -690,7 +690,7 @@ analizarPrendaIA.addEventListener("click", async () => {
     showToast("Datos extraidos con exito. Por favor revisa y ajusta los campos antes de guardar.");
   } catch (error) {
     console.error(error);
-    showToast("No se pudo analizar la imagen. Intenta con otra foto o llena los campos manualmente.", "error");
+    showToast(error.message || "No se pudo analizar la imagen. Intenta con otra foto o llena los campos manualmente.", "error");
   } finally {
     setAnalyzeState(false);
   }

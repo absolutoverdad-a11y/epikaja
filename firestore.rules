@@ -63,6 +63,7 @@ service cloud.firestore {
         "prendas",
         "ingresoExtra",
         "origen",
+        "fechaOperacion",
         "usuarioEmail",
         "usuarioUid",
         "fecha"
@@ -80,6 +81,11 @@ service cloud.firestore {
         && request.resource.data.usuarioUid == request.auth.uid
         && request.resource.data.usuarioEmail == request.auth.token.email
         && request.resource.data.fecha == request.time
+        && (!("fechaOperacion" in request.resource.data)
+          || (
+            request.resource.data.fechaOperacion is string
+            && request.resource.data.fechaOperacion.matches("^\\d{4}-\\d{2}-\\d{2}$")
+          ))
         && (!("prendas" in request.resource.data) || request.resource.data.prendas is list)
         && (!("ingresoExtra" in request.resource.data)
           || request.resource.data.ingresoExtra == null
@@ -163,11 +169,13 @@ service cloud.firestore {
         : request.resource.data.creadoEn == request.time;
     }
 
-    function soloDescuentaStock() {
-      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(["stock"])
+    function decrementoStockVentaValido() {
+      return tieneAcceso()
+        && request.resource.data.diff(resource.data).changedKeys().hasOnly(["stock"])
         && request.resource.data.stock is number
+        && resource.data.stock is number
         && request.resource.data.stock >= 0
-        && request.resource.data.stock <= resource.data.stock;
+        && request.resource.data.stock < resource.data.stock;
     }
 
     match /usuarios/{uid} {
@@ -206,10 +214,8 @@ service cloud.firestore {
           esAdmin()
           && productoBaseValido(codigo)
           && creadoEnValidoEnUpdate()
-        ) || (
-          tieneAcceso()
-          && soloDescuentaStock()
-        );
+        )
+        || decrementoStockVentaValido();
 
       allow delete: if false;
     }
