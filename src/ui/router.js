@@ -36,6 +36,10 @@ export function getCurrentRole() {
   return appState.rol;
 }
 
+export function isReadOnlyRole(rol = appState.rol) {
+  return rol === "vendedor";
+}
+
 export function getCurrentRouteName(pathname = window.location.pathname) {
   const fileName = pathname.split("/").filter(Boolean).pop();
   return fileName || "index.html";

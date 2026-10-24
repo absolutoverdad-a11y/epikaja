@@ -17,6 +17,7 @@ import {
   clearCurrentUserRole,
   guardCurrentRoute,
   hasRoutesForRole,
+  isReadOnlyRole,
   renderNavbar,
   setCurrentUserRole,
 } from "../src/ui/router.js";
@@ -185,7 +186,9 @@ function renderCart() {
   cartPiecesCount.textContent = String(pieces);
   cartTotal.textContent = moneyFormatter.format(total);
   if (checkoutButton) {
-    checkoutButton.disabled = cart.length === 0;
+    const readOnly = isReadOnlyRole();
+    checkoutButton.classList.toggle("hidden", readOnly);
+    checkoutButton.disabled = readOnly || cart.length === 0;
     checkoutButton.textContent = cart.length === 0 ? "Cobrar Venta" : `Cobrar ${moneyFormatter.format(total)}`;
   }
 
@@ -459,6 +462,7 @@ function showScannedProduct(producto) {
   scanProductCode.textContent = producto.codigoBarras || producto.id || "";
   scanProductPrice.textContent = moneyFormatter.format(producto.precioVenta || 0);
   scanProductStock.textContent = String(Number(producto.stock || 0));
+  addScannedProduct.classList.toggle("hidden", isReadOnlyRole());
   scanErrorCard.classList.add("hidden");
   scanProductCard.classList.remove("hidden");
   setScannerStatus("Camara pausada. Valida el producto.");

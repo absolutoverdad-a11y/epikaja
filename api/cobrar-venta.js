@@ -32,7 +32,7 @@ export default async function handler(request, response) {
 
   let user;
   try {
-    user = await verifyRequestUser(request, ["admin", "vendedor"]);
+    user = await verifyRequestUser(request, ["admin"]);
   } catch (error) {
     handleApiError(response, error, "No se pudo validar la sesion.");
     return;
