@@ -2,18 +2,18 @@ export const appRoutes = [
   {
     nombre: "Punto de Venta",
     url: "punto-venta.html",
-    rolesPermitidos: ["admin", "vendedor", "visitante"],
+    rolesPermitidos: ["admin", "vendedor"],
     default: true,
   },
   {
     nombre: "Finanzas",
     url: "index.html",
-    rolesPermitidos: ["admin", "visitante"],
+    rolesPermitidos: ["admin"],
   },
   {
     nombre: "Inventario",
     url: "inventario.html",
-    rolesPermitidos: ["admin", "visitante"],
+    rolesPermitidos: ["admin"],
   },
 ];
 
@@ -34,10 +34,6 @@ export function clearCurrentUserRole() {
 
 export function getCurrentRole() {
   return appState.rol;
-}
-
-export function isReadOnlyRole(rol = appState.rol) {
-  return rol === "visitante";
 }
 
 export function getCurrentRouteName(pathname = window.location.pathname) {

@@ -128,12 +128,6 @@ function clearLoginError() {
   loginError.classList.add("hidden");
 }
 
-function applyRoleVisibility(rol) {
-  document.querySelectorAll("[data-admin-only]").forEach((element) => {
-    element.classList.toggle("hidden", rol !== "admin");
-  });
-}
-
 function setConnectionState(state) {
   const styles = {
     connected: "bg-green-100 text-green-800",
@@ -704,7 +698,6 @@ listenAuth(async (user) => {
     }
 
     currentUser = user;
-    applyRoleVisibility(rol);
     renderNavbar(appNav, { rol });
     clearLoginError();
     loginScreen.classList.remove("hidden");
