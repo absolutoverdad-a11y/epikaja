@@ -8,7 +8,7 @@ export const appRoutes = [
   {
     nombre: "Finanzas",
     url: "index.html",
-    rolesPermitidos: ["admin"],
+    rolesPermitidos: ["admin", "vendedor"],
   },
   {
     nombre: "Inventario",

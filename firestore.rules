@@ -200,7 +200,7 @@ service cloud.firestore {
     }
 
     match /configuracion/{docId} {
-      allow read: if esAdmin();
+      allow read: if esAdmin() || esVendedor();
 
       allow write: if esAdmin()
         && docId == "saldos"
