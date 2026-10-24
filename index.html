@@ -168,7 +168,7 @@
               <p id="saldoActual" class="mt-2 text-4xl font-bold text-green-600">$0.00</p>
               <p id="resumenMovimientos" class="mt-2 text-sm text-gray-500">0 ingresos - 0 salidas</p>
             </div>
-            <button type="button" data-open-modal="modalSaldos" class="inline-flex items-center justify-center gap-2 rounded-lg bg-green-50 px-4 py-3 text-sm font-semibold text-green-700 hover:bg-green-100">
+            <button data-admin-only type="button" data-open-modal="modalSaldos" class="inline-flex items-center justify-center gap-2 rounded-lg bg-green-50 px-4 py-3 text-sm font-semibold text-green-700 hover:bg-green-100">
               <svg class="h-4 w-4" aria-hidden="true"><use href="#icon-settings"></use></svg>
               <span>Configurar saldos</span>
             </button>
@@ -186,7 +186,7 @@
           </article>
         </section>
 
-        <section class="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <section data-admin-only class="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
           <button type="button" data-open-modal="modalCorte" class="rounded-lg bg-green-600 px-4 py-4 text-left font-semibold text-white shadow-sm transition hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
             <span class="flex items-center gap-3">
               <svg class="h-6 w-6 shrink-0" aria-hidden="true"><use href="#icon-cash"></use></svg>
@@ -253,7 +253,7 @@
       </main>
     </div>
 
-    <div id="modalSaldos" class="fixed inset-0 z-50 hidden items-end justify-center bg-black/50 p-4 sm:items-center" role="dialog" aria-modal="true">
+    <div id="modalSaldos" data-admin-only class="fixed inset-0 z-50 hidden items-end justify-center bg-black/50 p-4 sm:items-center" role="dialog" aria-modal="true">
       <div class="w-full max-w-md rounded-lg bg-white shadow-xl">
         <div class="flex items-center justify-between border-b border-gray-100 px-5 py-4">
           <h2 class="text-lg font-bold">Saldos iniciales</h2>
@@ -276,7 +276,7 @@
       </div>
     </div>
 
-    <div id="modalCorte" class="fixed inset-0 z-50 hidden items-end justify-center bg-black/50 p-4 sm:items-center" role="dialog" aria-modal="true">
+    <div id="modalCorte" data-admin-only class="fixed inset-0 z-50 hidden items-end justify-center bg-black/50 p-4 sm:items-center" role="dialog" aria-modal="true">
       <div class="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-lg bg-white shadow-xl">
         <div class="flex items-center justify-between border-b border-gray-100 px-5 py-4">
           <h2 class="text-lg font-bold">Corte del dia</h2>
@@ -334,7 +334,7 @@
       </div>
     </div>
 
-    <div id="modalGasto" class="fixed inset-0 z-50 hidden items-end justify-center bg-black/50 p-4 sm:items-center" role="dialog" aria-modal="true">
+    <div id="modalGasto" data-admin-only class="fixed inset-0 z-50 hidden items-end justify-center bg-black/50 p-4 sm:items-center" role="dialog" aria-modal="true">
       <div class="w-full max-w-md rounded-lg bg-white shadow-xl">
         <div class="flex items-center justify-between border-b border-gray-100 px-5 py-4">
           <h2 class="text-lg font-bold">Gasto operativo</h2>
@@ -374,7 +374,7 @@
       </div>
     </div>
 
-    <div id="modalRetiro" class="fixed inset-0 z-50 hidden items-end justify-center bg-black/50 p-4 sm:items-center" role="dialog" aria-modal="true">
+    <div id="modalRetiro" data-admin-only class="fixed inset-0 z-50 hidden items-end justify-center bg-black/50 p-4 sm:items-center" role="dialog" aria-modal="true">
       <div class="w-full max-w-md rounded-lg bg-white shadow-xl">
         <div class="flex items-center justify-between border-b border-gray-100 px-5 py-4">
           <h2 class="text-lg font-bold">Retiro de dinero</h2>

@@ -13,6 +13,7 @@ import {
   clearCurrentUserRole,
   guardCurrentRoute,
   hasRoutesForRole,
+  getCurrentRole,
   renderNavbar,
   setCurrentUserRole,
 } from "../src/ui/router.js";
@@ -130,6 +131,12 @@ function showToast(message, variant = "success") {
 function showLoginError(message) {
   loginError.textContent = message;
   loginError.classList.remove("hidden");
+}
+
+function applyRoleVisibility(rol) {
+  document.querySelectorAll("[data-admin-only]").forEach((element) => {
+    element.classList.toggle("hidden", rol !== "admin");
+  });
 }
 
 function clearLoginError() {
@@ -524,9 +531,7 @@ function renderProductos() {
             </p>
             <p class="mt-1 text-xs text-gray-400">${escapeHtml(producto.ubicacion || "Sin ubicacion")}</p>
           </div>
-          <button type="button" data-edit-product="${escapeHtml(producto.codigoBarras ?? producto.id)}" class="rounded-lg bg-gray-950 px-4 py-3 text-sm font-semibold text-white hover:bg-gray-800">
-            Editar
-          </button>
+          ${getCurrentRole() === "visitante" ? "" : `<button type="button" data-edit-product="${escapeHtml(producto.codigoBarras ?? producto.id)}" class="rounded-lg bg-gray-950 px-4 py-3 text-sm font-semibold text-white hover:bg-gray-800">Editar</button>`}
         </article>
       `;
     })
@@ -797,6 +802,7 @@ listenAuth(async (user) => {
     }
 
     currentUser = user;
+    applyRoleVisibility(rol);
     renderNavbar(appNav, { rol });
     loginScreen.classList.remove("hidden");
     appShell.classList.add("hidden");

@@ -37,7 +37,15 @@ service cloud.firestore {
       return tieneRol(["vendedor"]) || esTrabajadorLegacy();
     }
 
+    function esVisitante() {
+      return tieneRol(["visitante"]);
+    }
+
     function tieneAcceso() {
+      return esAdmin() || esVendedor() || esVisitante();
+    }
+
+    function puedeRegistrar() {
       return esAdmin() || esVendedor();
     }
 
@@ -170,7 +178,7 @@ service cloud.firestore {
     }
 
     function decrementoStockVentaValido() {
-      return tieneAcceso()
+      return puedeRegistrar()
         && request.resource.data.diff(resource.data).changedKeys().hasOnly(["stock"])
         && request.resource.data.stock is number
         && resource.data.stock is number
@@ -187,16 +195,16 @@ service cloud.firestore {
 
     match /transacciones/{docId} {
       // Finanzas solo para admin. Vendedor puede crear ventas/gastos permitidos, pero no leer historial financiero.
-      allow read: if esAdmin();
+      allow read: if esAdmin() || esVisitante();
 
-      allow create: if tieneAcceso()
+      allow create: if puedeRegistrar()
         && transaccionValida();
 
       allow update, delete: if false;
     }
 
     match /configuracion/{docId} {
-      allow read: if esAdmin();
+      allow read: if esAdmin() || esVisitante();
 
       allow write: if esAdmin()
         && docId == "saldos"
